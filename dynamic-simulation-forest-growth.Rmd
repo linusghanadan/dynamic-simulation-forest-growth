@@ -1,0 +1,151 @@
+---
+title: "Dynamic simulation of forest growth over 300 years with global sensitivity analysis"
+author: "Fletcher McConnell & Linus Ghanadan"
+date: "05-16-2024"
+output: html_document
+---
+
+```{r setup, message=FALSE}
+# load packages
+library(tidyverse)
+library(deSolve)
+library(sensitivity)
+```
+
+## Setup
+
+```{r}
+# load packages
+library(tidyverse)
+library(deSolve)
+library(sensitivity)
+
+# source forest growth function
+source("dforestgrowth.R")
+```
+
+## Run model for 300 years (using the ODE solver)
+
+```{r}
+# set number of parameters
+np = 2000
+
+# generate parameter sets for sensitivity analysis
+r_exp = rnorm(mean = 0.01, sd = 0.002, n = np)
+g_linear = rnorm(mean = 2, sd = 0.5, n = np)
+K_capacity = rnorm(mean = 250, sd = 50, n = np)
+threshold_closure = rnorm(mean = 50, sd = 10, n = np)
+
+X1 = cbind.data.frame(r = r_exp, g = g_linear, K = K_capacity, threshold = threshold_closure)
+
+r_exp = rnorm(mean = 0.01, sd = 0.002, n = np)
+g_linear = rnorm(mean = 2, sd = 0.5, n = np)
+K_capacity = rnorm(mean = 250, sd = 50, n = np)
+threshold_closure = rnorm(mean = 50, sd = 10, n = np)
+
+X2 = cbind.data.frame(r = r_exp, g = g_linear, K = K_capacity, threshold = threshold_closure)
+
+# fix negative values
+X1 = X1 %>% map_df(pmax, 0.0)
+X2 = X2 %>% map_df(pmax, 0.0)
+
+# create Sobol object and get parameter sets for running model
+sens_P = sobolSalt(model = NULL, X1, X2, nboot = 300)
+
+# add names to parameter sets
+colnames(sens_P$X) = c("r", "g", "K", "threshold")
+
+# set initial forest size and simulation times
+Cinitial = 10
+simtimes = seq(from = 1, to = 300)
+
+# run model with first parameter set
+parms = list(r = sens_P$X[1, "r"], g = sens_P$X[1, "g"], K = sens_P$X[1, "K"], threshold = sens_P$X[1, "threshold"])
+
+result = ode(y = Cinitial, times = simtimes, func = dforestgrowth, parms = parms)
+result = as.data.frame(result)
+colnames(result) = c("time", "C")
+
+# plot results
+ggplot(result, aes(time, C)) +
+  geom_line() +
+  labs(x = "Time (years)", y = "Forest Size (kg C)", title = "Forest Growth Trajectory") +
+  theme_bw()
+```
+
+## Sobol global sensitivity analysis
+
+```{r}
+# function to compute maximum forest size
+compute_max_forest_size <- function(carbontime) {
+  max_size <- max(carbontime$C)
+  return(list(max_size = max_size))
+}
+
+# set number of parameters
+np <- 2000
+
+# generate parameter sets for sensitivity analysis
+r_exp <- rnorm(mean = 0.01, sd = 0.001, n = np)
+g_linear <- rnorm(mean = 2, sd = 0.2, n = np)
+K_capacity <- rnorm(mean = 250, sd = 25, n = np)
+threshold_closure <- rnorm(mean = 50, sd = 5, n = np)
+
+X1 <- cbind.data.frame(r = r_exp, g = g_linear, K = K_capacity, threshold = threshold_closure)
+
+r_exp <- rnorm(mean = 0.01, sd = 0.001, n = np)
+g_linear <- rnorm(mean = 2, sd = 0.2, n = np)
+K_capacity <- rnorm(mean = 250, sd = 25, n = np)
+threshold_closure <- rnorm(mean = 50, sd = 5, n = np)
+
+X2 <- cbind.data.frame(r = r_exp, g = g_linear, K = K_capacity, threshold = threshold_closure)
+
+# create Sobol object and get parameter sets for running model
+sens_forest <- sobolSalt(model = NULL, X1, X2, nboot = 300)
+colnames(sens_forest$X) <- c("r", "g", "K", "threshold")
+
+# wrapper function to run model and compute maximum forest size
+p_wrapper <- function(r, g, K, threshold, Cinitial, simtimes, odefunc, metricfunc) {
+  parms <- list(r = r, g = g, K = K, threshold = threshold)
+  result <- ode(y = Cinitial, times = simtimes, func = odefunc, parms = parms)
+  result <- as.data.frame(result)
+  colnames(result) <- c("time", "C")
+  metrics <- metricfunc(result)
+  return(metrics)
+}
+
+# set initial forest size and simulation times
+Cinitial <- 10
+simtimes <- seq(from = 1, to = 300)
+
+# run model for all parameter sets and compute maximum forest size
+allresults <- as.data.frame(sens_forest$X) %>%
+  pmap(p_wrapper, Cinitial = Cinitial, simtimes = simtimes, odefunc = dforestgrowth, metricfunc = compute_max_forest_size)
+
+# extract maximum forest size results into a data frame
+allres <- allresults %>% map_dfr(`[`, "max_size")
+colnames(allres) <- "max_size"
+
+# create sensitivity analysis box plot
+ggplot(allres, aes(x = "All Parameter Sets", y = max_size)) +
+  geom_boxplot(color = "black") +
+  labs(x = NULL, y = "Maximum Forest Size (kg C)", title = "Global Sensitivity Analysis: Impact of Varying Parameters on Maximum Forest Size") +
+  theme_minimal()
+```
+
+```{r}
+# perform sensitivity analysis
+sens_result <- tell(sens_forest, allres$max_size)
+
+# label rows in the Sobol indices
+rownames(sens_result$S) <- c("r", "g", "K", "threshold")
+rownames(sens_result$T) <- c("r", "g", "K", "threshold")
+
+# print Sobol indices with labeled rows
+print(sens_result)
+```
+
+
+## Conclusion
+
+This sensitivity analysis suggests that the carrying capacity (K) and the pre-canopy closure growth rate (r) are the most influential parameters in determining the maximum forest size estimates. Variations in either of these parameters could lead to significant differences in the maximum size that a forest can reach. Because of this, it is crucial to have accurate estimates of all parameters, but especially K and r, so that predictions of the maximum forest size are accurate. 
