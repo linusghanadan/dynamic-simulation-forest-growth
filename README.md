@@ -3,11 +3,11 @@
 ### Repository Contents
     dynamic-simulation-forest-growth
     └───images
-        │   300-Year Growth Trajectory for Forest: forest-size-simulation.png
         │   Impact of Varying Parameters on Maximum Forest Size: forest-size-sensitivity.png
+        │   300-Year Growth Trajectory for Forest: forest-size-simulation.png
     │   README.md
+    │   .R
     │   .Rmd
-    │   .Rproj
 
 ### Context
 
