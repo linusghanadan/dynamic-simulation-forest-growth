@@ -6,7 +6,7 @@
         │   Impact of Varying Parameters on Maximum Forest Size: forest-size-sensitivity.png
         │   300-Year Growth Trajectory for Forest: forest-size-simulation.png
     │   README.md
-    │   .R
+    │   dforestgrowth.R
     │   .Rmd
 
 ### Context
