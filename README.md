@@ -1,5 +1,14 @@
 ## Dynamic Simulation of Forest Growth
 
+### Repository Contents
+    dynamic-simulation-forest-growth
+    └───images
+        │   300-Year Growth Trajectory for Forest: forest-size-simulation.png
+        │   Impact of Varying Parameters on Maximum Forest Size: forest-size-sensitivity.png
+    │   README.md
+    │   .Rmd
+    │   .Rproj
+
 ### Context
 
 This project was completed for my Modeling Environmental Systems class, taken as part of my Master's program at UC Santa Barbara. Provided with data and questions, I carried out this analysis using appropriate modeling techniques.
