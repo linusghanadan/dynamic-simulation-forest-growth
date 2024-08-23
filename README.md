@@ -1,6 +1,6 @@
 ## Dynamic Simulation of Forest Growth
 
-### [Link to Blog (with R code)](https://linusghanadan.github.io/blog/2024-6-10-post/)
+### [Link to Blog (includes R code, code output, and written analysis)](https://linusghanadan.github.io/blog/2024-6-10-post/)
 
 ### Repository Contents
     dynamic-simulation-forest-growth
